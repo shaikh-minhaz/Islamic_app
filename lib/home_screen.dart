@@ -2,6 +2,7 @@
 // Username fixed + adaptive grid + better scaling
 
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -263,19 +264,19 @@ class _HomeContentState extends State<_HomeContent> {
               child: Column(
                 children: [
                   Text(
-                    "Assalamualaikum",
+                    "Assalam-o-Alaikum",
                     style: GoogleFonts.poppins(
                       fontSize: width * 0.06,
                       fontWeight: FontWeight.w600,
-                      color: Colors.teal,
+                      color: const Color(0xFF0D4D44),
                     ),
                   ),
                   Text(
                     userName,
                     style: GoogleFonts.poppins(
                       fontSize: width * 0.060,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.teal,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF0D4D44),
                     ),
                   ),
                 ],
@@ -358,7 +359,7 @@ class _IslamicCalendarButton extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => const FastIslamicCalendar(),
+            builder: (_) => const RoyalIslamicCalendar(),
           ),
         );
       },
@@ -584,245 +585,151 @@ class _NextPrayerFullCard extends StatelessWidget {
   }
 }
 
-
-class FastIslamicCalendar extends StatefulWidget {
-  const FastIslamicCalendar({super.key});
+class RoyalIslamicCalendar extends StatefulWidget {
+  const RoyalIslamicCalendar({super.key});
 
   @override
-  State<FastIslamicCalendar> createState() =>
-      _FastIslamicCalendarState();
+  State<RoyalIslamicCalendar> createState() => _RoyalIslamicCalendarState();
 }
 
-class _FastIslamicCalendarState
-    extends State<FastIslamicCalendar> {
-
-  final DateTime _firstDay = DateTime(2000);
-  final DateTime _lastDay = DateTime(2100);
-
+class _RoyalIslamicCalendarState extends State<RoyalIslamicCalendar> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
 
-  int tasbeehCount = 0;
+  final Color deepGold = const Color(0xFFC5A059);
+  final Color royalGreen = const Color(0xFF0D4D44);
+  final Color bgCream = const Color(0xFFFDFBF7);
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDay = _focusedDay;
+    HijriCalendar.setLocal('en');
+  }
 
   /// 🌙 Festival Logic
-  String? _getFestival(HijriCalendar h) {
-    if (h.hMonth == 9) {
-      if (h.hDay == 1) return "🌙 Start of Ramadan";
-      return "🌙 Ramadan";
-    }
-
-    if (h.hMonth == 10 && h.hDay == 1) {
-      return "🎉 Eid ul-Fitr";
-    }
-
-    if (h.hMonth == 12 && h.hDay == 10) {
-      return "🕌 Eid ul-Adha";
-    }
-
-    if (h.hMonth == 1 && h.hDay == 1) {
-      return "✨ Islamic New Year";
-    }
-
-    if (h.hMonth == 1 && h.hDay == 10) {
-      return "⭐ Ashura";
-    }
-
-    if (h.hMonth == 3 && h.hDay == 12) {
-      return "🌟 Milad un-Nabi";
-    }
-
+  Map<String, dynamic>? getFestivalInfo(HijriCalendar h) {
+    if (h.hMonth == 9 && h.hDay == 1) return {"name": "Ramadan Starts", "icon": "🌙"};
+    if (h.hMonth == 10 && h.hDay == 1) return {"name": "Eid-ul-Fitr", "icon": "🎁"};
+    if (h.hMonth == 12 && h.hDay == 10) return {"name": "Eid-ul-Adha", "icon": "🕋"};
+    if (h.hMonth == 1 && h.hDay == 1) return {"name": "Islamic New Year", "icon": "📅"};
+    if (h.hMonth == 1 && h.hDay == 10) return {"name": "Ashura", "icon": "🏴"};
+    if (h.hMonth == 3 && h.hDay == 12) return {"name": "Mawlid al-Nabi", "icon": "🕌"};
     return null;
-  }
-
-  bool _isRamadan(HijriCalendar h) {
-    return h.hMonth == 9;
-  }
-
-  bool _isAshura(HijriCalendar h) {
-    return h.hMonth == 1 && h.hDay == 10;
-  }
-
-  String _getHijriDay(DateTime date) {
-    final h = HijriCalendar.fromDate(date);
-    return "${h.hDay}";
-  }
-
-  String _getFullHijri(DateTime date) {
-    final h = HijriCalendar.fromDate(date);
-    return "${h.hDay} ${h.longMonthName} ${h.hYear} AH";
   }
 
   @override
   Widget build(BuildContext context) {
-
-    final width = MediaQuery.of(context).size.width;
-    final selectedHijri =
-    HijriCalendar.fromDate(_selectedDay ?? DateTime.now());
-    final festival = _getFestival(selectedHijri);
+    final hijri = HijriCalendar.fromDate(_selectedDay ?? DateTime.now());
+    final fest = getFestivalInfo(hijri);
 
     return Scaffold(
       backgroundColor: backgroundLight,
       body: Column(
         children: [
-          const SizedBox(height: 40),
-          /// 💎 Luxury Selected Date Card
+          /// --- Header ---
           Container(
-            width: width * 0.9,
-            padding: EdgeInsets.all(width * 0.05),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(25),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.brown.withOpacity(0.15),
-                  blurRadius: 15,
-                  offset: const Offset(0, 6),
-                )
-              ],
+            width: double.infinity,
+            padding: const EdgeInsets.only(top: 60, bottom: 35, left: 20, right: 20),
+            decoration: const BoxDecoration(
+              color: primaryBrown,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
             ),
             child: Column(
               children: [
-                const Text(
-                  "Selected Hijri Date",
-                  style: TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 6),
+                const Text("ISLAMIC CALENDAR", style: TextStyle(color: backgroundLight, letterSpacing: 2, fontSize: 15)),
+                const SizedBox(height: 15),
                 Text(
-                  _getFullHijri(_selectedDay ?? DateTime.now()),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: width * 0.05,
-                    fontWeight: FontWeight.bold,
-                    color: primaryBrown,
-                  ),
+                  "${hijri.hDay} ${hijri.longMonthName} ${hijri.hYear} AH",
+                  style: const TextStyle(color: backgroundLight, fontSize: 24, fontWeight: FontWeight.bold),
                 ),
-                if (festival != null) ...[
-                  const SizedBox(height: 8),
+                const SizedBox(height: 5),
+                Text(
+                  "${_selectedDay?.day}/${_selectedDay?.month}/${_selectedDay?.year}",
+                  style: const TextStyle(color: backgroundLight, fontSize: 18),
+                ),
+                if (fest != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      festival,
-                      style: const TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    margin: const EdgeInsets.only(top: 15),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                    child: Text("${fest['icon']} ${fest['name']}", style: const TextStyle(color: Colors.yellowAccent, fontWeight: FontWeight.bold)),
                   ),
-                ]
               ],
             ),
           ),
 
-          const SizedBox(height: 15),
-
-          /// 📅 Calendar
+          /// --- Calendar ---
           Expanded(
-            child: Padding(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 16),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius:
-                  BorderRadius.circular(25),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.brown.withOpacity(0.1),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20)],
                 ),
                 child: TableCalendar(
-                  firstDay: _firstDay,
-                  lastDay: _lastDay,
+                  firstDay: DateTime(2000),
+                  lastDay: DateTime(2100),
                   focusedDay: _focusedDay,
-                  selectedDayPredicate: (day) =>
-                      isSameDay(_selectedDay, day),
-
-                  onDaySelected:
-                      (selectedDay, focusedDay) {
+                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                  headerStyle: const HeaderStyle(
+                    formatButtonVisible: false,
+                    titleCentered: true,
+                    titleTextStyle: TextStyle(color: primaryBrown, fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  onDaySelected: (selectedDay, focusedDay) {
                     setState(() {
                       _selectedDay = selectedDay;
                       _focusedDay = focusedDay;
                     });
                   },
-
-                  headerStyle: const HeaderStyle(
-                    formatButtonVisible: false,
-                    titleCentered: true,
-                  ),
-
-                  calendarBuilders:
-                  CalendarBuilders(
-                    defaultBuilder:
-                        (context, date, _) {
-                      final h =
-                      HijriCalendar.fromDate(date);
-
-                      final isFriday =
-                          date.weekday == 5;
-                      final isRamadan =
-                      _isRamadan(h);
-                      final isAshura =
-                      _isAshura(h);
-                      final fest =
-                      _getFestival(h);
-
-                      Color hijriColor =
-                          Colors.grey;
-
-                      if (isRamadan)
-                        hijriColor = Colors.green;
-                      if (isFriday)
-                        hijriColor = Colors.blue;
-                      if (isAshura)
-                        hijriColor = Colors.red;
-
-                      return Column(
-                        mainAxisAlignment:
-                        MainAxisAlignment
-                            .center,
-                        children: [
-                          Text(
-                            "${date.day}",
-                            style: TextStyle(
-                              fontWeight: isFriday
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                          Text(
-                            _getHijriDay(date),
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: hijriColor,
-                              fontWeight: fest != null
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                          if (fest != null)
-                            const Icon(
-                              Icons.star,
-                              size: 10,
-                              color: Colors.green,
-                            ),
-                        ],
-                      );
+                  calendarBuilders: CalendarBuilders(
+                    // Is hisse mein humne Festival Marker add kiya hai
+                    markerBuilder: (context, date, events) {
+                      final hDate = HijriCalendar.fromDate(date);
+                      final f = getFestivalInfo(hDate);
+                      if (f != null) {
+                        return Positioned(
+                          right: 1,
+                          bottom: 1,
+                          child: Text(f['icon'], style: const TextStyle(fontSize: 12)),
+                        );
+                      }
+                      return null;
+                    },
+                    todayBuilder: (context, date, _) => _buildDateCell(date, Colors.grey.shade200, Colors.black),
+                    selectedBuilder: (context, date, _) => _buildDateCell(date, deepGold, Colors.white, isSelected: true),
+                    defaultBuilder: (context, date, _) {
+                      bool isFriday = date.weekday == DateTime.friday;
+                      return _buildDateCell(date, Colors.transparent, isFriday ? royalGreen : Colors.black87, isFriday: isFriday);
                     },
                   ),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 120),
-          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDateCell(DateTime date, Color bgColor, Color textColor, {bool isSelected = false, bool isFriday = false}) {
+    final hDate = HijriCalendar.fromDate(date);
+    return Container(
+      margin: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: isFriday && !isSelected ? Border.all(color: royalGreen.withOpacity(0.3)) : null,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text("${date.day}", style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 15)),
+          Text("${hDate.hDay}", style: TextStyle(color: isSelected ? Colors.white70 : deepGold, fontSize: 10, fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }
