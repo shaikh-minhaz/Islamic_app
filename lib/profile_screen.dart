@@ -1,5 +1,7 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:islamic_app/username_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app_colors.dart';
 
@@ -10,65 +12,81 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _surnameController = TextEditingController();
-
+class _ProfileScreenState extends State<ProfileScreen>
+    with SingleTickerProviderStateMixin {
   String fullName = "";
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
-    _loadProfile(); // 👈 saved name load
+    _loadUserName();
+
+    _controller =
+        AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
+
+    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
+        CurvedAnimation(parent: _controller, curve: Curves.easeIn));
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1).animate(
+        CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+
+    _controller.forward();
   }
 
-  /// 🔹 Load saved name
-  void _loadProfile() async {
+  Future<void> _loadUserName() async {
     final prefs = await SharedPreferences.getInstance();
     final savedName = prefs.getString("user_name");
 
-    if (savedName != null && savedName.isNotEmpty) {
-      setState(() {
-        fullName = savedName;
-
-        /// split karke fields me bhi dikhayega
-        final parts = savedName.split(" ");
-        _nameController.text = parts.first;
-        if (parts.length > 1) {
-          _surnameController.text = parts.sublist(1).join(" ");
-        }
-      });
-    }
+    setState(() {
+      fullName = savedName ?? "Guest User";
+    });
   }
 
-  /// 🔹 Save profile permanently
-  void _saveProfile() async {
-    final name = _nameController.text.trim();
-    final surname = _surnameController.text.trim();
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text("Sign Out"),
+        content: const Text("Are you sure you want to sign out?"),
+        actions: [
+          TextButton(
+            child: const Text("No"),
+            onPressed: () => Navigator.pop(context),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryBrown,
+            ),
+            child: const Text("Yes",style: TextStyle(color: backgroundLight),),
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear();
 
-    if (name.isEmpty || surname.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter name and surname")),
-      );
-      return;
-    }
+              if (!mounted) return;
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString("user_name", "$name $surname");
-
-    setState(() {
-      fullName = "$name $surname";
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Profile saved successfully")),
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const UsernamePage(),
+                ),
+                    (route) => false,
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _surnameController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -77,69 +95,87 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final width = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Profile"),
-        backgroundColor: primaryBrown,
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            /// 👤 Display Saved Name
-            if (fullName.isNotEmpty)
-              Center(
-                child: Text(
-                  fullName,
-                  style: GoogleFonts.poppins(
-                    fontSize: width * 0.06,
-                    fontWeight: FontWeight.bold,
-                    color: primaryBrown,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              primaryBrown.withOpacity(0.9),
+              backgroundDark,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: width * 0.06),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(25),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                    child: Container(
+                      padding: const EdgeInsets.all(30),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(25),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircleAvatar(
+                            radius: width * 0.15,
+                            backgroundColor: Colors.white.withOpacity(0.3),
+                            child: Icon(
+                              Icons.person,
+                              size: width * 0.15,
+                              color: Colors.white,
+                            ),
+                          ),
+
+                          const SizedBox(height: 25),
+
+                          Text(
+                            fullName,
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(
+                              fontSize: width * 0.055,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+
+                          const SizedBox(height: 40),
+
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _showLogoutDialog,
+                              icon: const Icon(Icons.logout,color: backgroundLight,size: 18,),
+                              label: const Text("Sign Out",style: TextStyle(fontSize: 18,color: backgroundLight),),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: primaryBrown,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-
-            const SizedBox(height: 30),
-
-            /// 📝 Name Field
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: "First Name",
-                border: OutlineInputBorder(),
-              ),
             ),
-
-            const SizedBox(height: 16),
-
-            /// 📝 Surname Field
-            TextField(
-              controller: _surnameController,
-              decoration: const InputDecoration(
-                labelText: "Surname",
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            /// 💾 Save Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _saveProfile,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryBrown,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: Text(
-                  "Save Profile",
-                  style: GoogleFonts.poppins(fontSize: 16),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

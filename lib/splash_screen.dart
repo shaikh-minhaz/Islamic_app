@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'home_screen.dart';
-import 'app_colors.dart'; // ⭐ IMPORTANT
+import 'username_page.dart'; // ⭐ ADD THIS
+import 'app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -43,19 +46,39 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const HomeScreen(),
-            transitionsBuilder: (_, animation, __, child) =>
-                FadeTransition(opacity: animation, child: child),
-            transitionDuration: const Duration(milliseconds: 500),
-          ),
-        );
-      }
-    });
+    _checkUser(); // ⭐ IMPORTANT
+  }
+
+  // ✅ USER CHECK LOGIC
+  Future<void> _checkUser() async {
+    await Future.delayed(const Duration(seconds: 3));
+
+    final prefs = await SharedPreferences.getInstance();
+    String? username = prefs.getString('username');
+
+    if (!mounted) return;
+
+    if (username == null) {
+      Navigator.pushReplacement(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => const UsernamePage(),
+          transitionsBuilder: (_, animation, __, child) =>
+              FadeTransition(opacity: animation, child: child),
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => const HomeScreen(),
+          transitionsBuilder: (_, animation, __, child) =>
+              FadeTransition(opacity: animation, child: child),
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      );
+    }
   }
 
   @override
@@ -76,13 +99,13 @@ class _SplashScreenState extends State<SplashScreen>
     final gapBig = height * 0.05;
 
     return Scaffold(
-      backgroundColor: backgroundLight, // ⭐ smooth transition
+      backgroundColor: backgroundLight,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [backgroundLight, backgroundDark], // ⭐ SAME as Home
+            colors: [backgroundLight, backgroundDark],
           ),
         ),
         child: Center(
@@ -100,7 +123,7 @@ class _SplashScreenState extends State<SplashScreen>
                       style: GoogleFonts.poppins(
                         fontSize: titleSize,
                         fontWeight: FontWeight.bold,
-                        color: primaryBrown, // ⭐ synced
+                        color: primaryBrown,
                         letterSpacing: 2,
                       ),
                     ),
@@ -109,7 +132,7 @@ class _SplashScreenState extends State<SplashScreen>
                       'Path of Guidance',
                       style: GoogleFonts.poppins(
                         fontSize: subtitleSize,
-                        color: textDark, // ⭐ synced
+                        color: textDark,
                         letterSpacing: 1,
                       ),
                     ),
@@ -142,16 +165,15 @@ class _SplashScreenState extends State<SplashScreen>
                   0,
                   movement *
                       (0.5 -
-                              (0.5 -
-                                  (((_controller.value * 3) - index).abs() %
-                                      1)))
+                          (0.5 -
+                              (((_controller.value * 3) - index).abs() % 1)))
                           .abs(),
                 ),
                 child: Container(
                   width: dotSize,
                   height: dotSize,
                   decoration: BoxDecoration(
-                    color: primaryBrown.withOpacity(0.7), // ⭐ synced
+                    color: primaryBrown.withOpacity(0.7),
                     shape: BoxShape.circle,
                   ),
                 ),
