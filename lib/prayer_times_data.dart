@@ -5,47 +5,51 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PrayerTimesData {
+  /// ================= STORAGE KEYS =================
+  static const _timesKey = "prayer_times";
+  static const _userSetKey = "user_set_azan";
 
-  ////////////////////////////////////////////////////////////
-  /// DEFAULT TIMES (Used for Reset)
-  ////////////////////////////////////////////////////////////
+  static List<TimeOfDay> times = [];
 
-  static final List<TimeOfDay> defaultTimes = [
-    const TimeOfDay(hour: 5, minute: 0),
-    const TimeOfDay(hour: 12, minute: 30),
-    const TimeOfDay(hour: 16, minute: 30),
-    const TimeOfDay(hour: 18, minute: 30),
-    const TimeOfDay(hour: 20, minute: 0),
-  ];
-
-  /// Current active times
-  static List<TimeOfDay> times = List.from(defaultTimes);
-
-  ////////////////////////////////////////////////////////////
-  /// MAIN FUNCTION → Call at app start
-  ////////////////////////////////////////////////////////////
-
+  /// ================= INIT =================
   static Future<void> init() async {
-    await _loadFromCache();   // offline support
-    await _fetchFromAPI();    // refresh online
+    final prefs = await SharedPreferences.getInstance();
+    final userSet = prefs.getBool(_userSetKey) ?? false;
+
+    if (userSet) {
+      // 👤 User ne custom set kiya hai → cache load karo
+      await _loadFromCache();
+    } else {
+      // 📡 First time ya reset ke baad → API se lao
+      await _fetchFromAPI();
+    }
   }
 
-  ////////////////////////////////////////////////////////////
-  /// RESET TO DEFAULT
-  ////////////////////////////////////////////////////////////
+  /// ================= USER SAVE =================
+  static Future<void> saveUserTimes(List<TimeOfDay> newTimes) async {
+    times = newTimes;
 
-  static Future<void> resetToDefault() async {
-    times = List.from(defaultTimes);
+    final prefs = await SharedPreferences.getInstance();
     await _saveToCache();
+
+    // mark user priority TRUE
+    await prefs.setBool(_userSetKey, true);
   }
 
-  ////////////////////////////////////////////////////////////
-  /// GET USER LOCATION
-  ////////////////////////////////////////////////////////////
+  /// ================= RESET =================
+  static Future<void> resetToAPI() async {
+    final prefs = await SharedPreferences.getInstance();
 
+    // user priority remove
+    await prefs.setBool(_userSetKey, false);
+
+    // fresh API load
+    await _fetchFromAPI();
+  }
+
+  /// ================= LOCATION =================
   static Future<Position?> _getLocation() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return null;
+    if (!await Geolocator.isLocationServiceEnabled()) return null;
 
     LocationPermission permission = await Geolocator.checkPermission();
 
@@ -59,10 +63,7 @@ class PrayerTimesData {
     return await Geolocator.getCurrentPosition();
   }
 
-  ////////////////////////////////////////////////////////////
-  /// FETCH FROM API
-  ////////////////////////////////////////////////////////////
-
+  /// ================= API =================
   static Future<void> _fetchFromAPI() async {
     try {
       final position = await _getLocation();
@@ -79,26 +80,22 @@ class PrayerTimesData {
       final timings = data["data"]["timings"];
 
       times = [
-        _add20(_parse(timings["Fajr"])),
-        _add20(_parse(timings["Dhuhr"])),
-        _add20(_parse(timings["Asr"])),
-        _add20(_parse(timings["Maghrib"])),
-        _add20(_parse(timings["Isha"])),
+        _add30(_parse(timings["Fajr"])),
+        _add30(_parse(timings["Dhuhr"])),
+        _add30(_parse(timings["Asr"])),
+        _add30(_parse(timings["Maghrib"])),
+        _add30(_parse(timings["Isha"])),
       ];
 
       await _saveToCache();
-
-    } catch (_) {
-      // Offline mode will continue
+    } catch (e) {
+      debugPrint("API Error: $e");
     }
   }
 
-  ////////////////////////////////////////////////////////////
-  /// SAFE PARSE "HH:mm"
-  ////////////////////////////////////////////////////////////
-
+  /// ================= HELPERS =================
   static TimeOfDay _parse(String time) {
-    final clean = time.split(" ")[0]; // remove timezone text if any
+    final clean = time.split(" ")[0];
     final parts = clean.split(":");
 
     return TimeOfDay(
@@ -107,39 +104,30 @@ class PrayerTimesData {
     );
   }
 
-  ////////////////////////////////////////////////////////////
-  /// ADD +20 MINUTES
-  ////////////////////////////////////////////////////////////
-
-  static TimeOfDay _add20(TimeOfDay t) {
+  /// 🔥 30 MIN ADD
+  static TimeOfDay _add30(TimeOfDay t) {
     int total = t.hour * 60 + t.minute + 20;
+
     return TimeOfDay(
       hour: (total ~/ 60) % 24,
       minute: total % 60,
     );
   }
 
-  ////////////////////////////////////////////////////////////
-  /// SAVE TO CACHE
-  ////////////////////////////////////////////////////////////
-
   static Future<void> _saveToCache() async {
     final prefs = await SharedPreferences.getInstance();
 
     final list = times
-        .map((t) => "${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}")
+        .map((t) =>
+            "${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}")
         .toList();
 
-    await prefs.setStringList("prayer_times", list);
+    await prefs.setStringList(_timesKey, list);
   }
-
-  ////////////////////////////////////////////////////////////
-  /// LOAD FROM CACHE
-  ////////////////////////////////////////////////////////////
 
   static Future<void> _loadFromCache() async {
     final prefs = await SharedPreferences.getInstance();
-    final list = prefs.getStringList("prayer_times");
+    final list = prefs.getStringList(_timesKey);
 
     if (list == null) return;
 

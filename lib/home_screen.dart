@@ -42,11 +42,11 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _lastPlayedPrayer;
 
   List<Widget> get _pages => [
-    _HomeContent(),
-    const QiblaScreen(),
-    const DuasScreen(),
-    const ProfileScreen(),
-  ];
+        _HomeContent(),
+        const QiblaScreen(),
+        const DuasScreen(),
+        const ProfileScreen(),
+      ];
 
   @override
   void initState() {
@@ -60,9 +60,19 @@ class _HomeScreenState extends State<HomeScreen> {
       final names = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"];
 
       for (int i = 0; i < names.length; i++) {
-        final t = PrayerTimesData.times[i];
+        final safeTimes = PrayerTimesData.times.length >= 5
+            ? PrayerTimesData.times
+            : const [
+                TimeOfDay(hour: 5, minute: 0),
+                TimeOfDay(hour: 12, minute: 30),
+                TimeOfDay(hour: 16, minute: 30),
+                TimeOfDay(hour: 18, minute: 30),
+                TimeOfDay(hour: 20, minute: 0),
+              ];
+
+        final t = safeTimes[i];
         final prayerTime =
-        DateTime(now.year, now.month, now.day, t.hour, t.minute);
+            DateTime(now.year, now.month, now.day, t.hour, t.minute);
 
         final diff = now.difference(prayerTime).inSeconds;
 
@@ -226,7 +236,7 @@ class _HomeContentState extends State<_HomeContent> {
     final now = DateTime.now();
     for (var p in prayers) {
       final dt =
-      DateTime(now.year, now.month, now.day, p.time.hour, p.time.minute);
+          DateTime(now.year, now.month, now.day, p.time.hour, p.time.minute);
       if (dt.isAfter(now)) return p;
     }
     return prayers.first;
@@ -245,12 +255,23 @@ class _HomeContentState extends State<_HomeContent> {
     final height = size.height;
 
     final names = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"];
+    final safeTimes = PrayerTimesData.times.length >= 5
+        ? PrayerTimesData.times
+        : const [
+            TimeOfDay(hour: 5, minute: 0),
+            TimeOfDay(hour: 12, minute: 30),
+            TimeOfDay(hour: 16, minute: 30),
+            TimeOfDay(hour: 18, minute: 30),
+            TimeOfDay(hour: 20, minute: 0),
+          ];
+
     final prayers =
-    List.generate(names.length, (i) => Prayer(names[i], PrayerTimesData.times[i]));
+        List.generate(names.length, (i) => Prayer(names[i], safeTimes[i]));
 
     final nextPrayer = getNextPrayer(prayers);
-    final displayPrayer =
-    (isAzanPhase || isJamatPhase) ? prayers[currentPrayerIndex] : nextPrayer;
+    final displayPrayer = (isAzanPhase || isJamatPhase)
+        ? prayers[currentPrayerIndex]
+        : nextPrayer;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -282,7 +303,10 @@ class _HomeContentState extends State<_HomeContent> {
                 ],
               ),
             ),
-            const Divider(color: primaryBrown,thickness: 1.5,),
+            const Divider(
+              color: primaryBrown,
+              thickness: 1.5,
+            ),
             Text(
               "Prayer Times",
               style: GoogleFonts.poppins(
@@ -307,15 +331,13 @@ class _HomeContentState extends State<_HomeContent> {
               padding: EdgeInsets.symmetric(horizontal: width * 0.05),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  int crossAxisCount =
-                  constraints.maxWidth > 600 ? 4 : 3;
+                  int crossAxisCount = constraints.maxWidth > 600 ? 4 : 3;
 
                   return GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: prayers.length + 1,
-                    gridDelegate:
-                    SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: crossAxisCount,
                       crossAxisSpacing: width * 0.03,
                       mainAxisSpacing: width * 0.03,
@@ -351,8 +373,7 @@ class _IslamicCalendarButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hijri = HijriCalendar.now();
-    final todayHijri =
-        "${hijri.hDay} ${hijri.longMonthName} ${hijri.hYear} AH";
+    final todayHijri = "${hijri.hDay} ${hijri.longMonthName} ${hijri.hYear} AH";
 
     return GestureDetector(
       onTap: () {
@@ -383,8 +404,7 @@ class _IslamicCalendarButton extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Icon(Icons.calendar_month,
-                color: Colors.white, size: width * 0.08),
+            Icon(Icons.calendar_month, color: Colors.white, size: width * 0.08),
             SizedBox(height: width * 0.02),
             Text(
               todayHijri,
@@ -409,7 +429,6 @@ class _IslamicCalendarButton extends StatelessWidget {
     );
   }
 }
-
 
 //////////////////////////////////////////////////////////////
 
@@ -437,8 +456,7 @@ class _SetAzanTile extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.access_time,
-                  color: primaryBrown, size: width * 0.08),
+              Icon(Icons.access_time, color: primaryBrown, size: width * 0.08),
               SizedBox(height: width * 0.02),
               Text("Set Azaan",
                   style: GoogleFonts.poppins(fontSize: width * 0.035)),
@@ -469,8 +487,7 @@ class _PrayerTile extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(prayer.name,
-                style: GoogleFonts.poppins(
-                    fontSize: width * 0.035)),
+                style: GoogleFonts.poppins(fontSize: width * 0.035)),
             SizedBox(height: width * 0.015),
             Text(prayer.time.format(contextRef),
                 style: GoogleFonts.poppins(
@@ -505,14 +522,12 @@ class _ArabicDateCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.calendar_month,
-              color: primaryBrown, size: width * 0.1),
+          Icon(Icons.calendar_month, color: primaryBrown, size: width * 0.1),
           SizedBox(width: width * 0.04),
           Expanded(
             child: Text(
               date,
-              style:
-              GoogleFonts.poppins(fontSize: width * 0.045),
+              style: GoogleFonts.poppins(fontSize: width * 0.045),
             ),
           ),
         ],
@@ -543,8 +558,8 @@ class _NextPrayerFullCard extends StatelessWidget {
     Color color = isJamat
         ? Colors.green
         : isAzan
-        ? Colors.orange
-        : primaryBrown;
+            ? Colors.orange
+            : primaryBrown;
 
     return Container(
       width: width * 0.9,
@@ -555,8 +570,7 @@ class _NextPrayerFullCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.mosque,
-              size: width * 0.1, color: color),
+          Icon(Icons.mosque, size: width * 0.1, color: color),
           SizedBox(width: width * 0.04),
           Expanded(
             child: Column(
@@ -565,8 +579,8 @@ class _NextPrayerFullCard extends StatelessWidget {
                 Text(isJamat
                     ? "Jamat Time"
                     : isAzan
-                    ? "Jamat Countdown"
-                    : "Next Prayer"),
+                        ? "Jamat Countdown"
+                        : "Next Prayer"),
                 Text(
                   isAzan ? remaining : prayer.name,
                   style: GoogleFonts.poppins(
@@ -574,8 +588,7 @@ class _NextPrayerFullCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       color: color),
                 ),
-                if (!isAzan && !isJamat)
-                  Text(prayer.time.format(this.context)),
+                if (!isAzan && !isJamat) Text(prayer.time.format(this.context)),
               ],
             ),
           ),
@@ -609,12 +622,17 @@ class _RoyalIslamicCalendarState extends State<RoyalIslamicCalendar> {
 
   /// 🌙 Festival Logic
   Map<String, dynamic>? getFestivalInfo(HijriCalendar h) {
-    if (h.hMonth == 9 && h.hDay == 1) return {"name": "Ramadan Starts", "icon": "🌙"};
-    if (h.hMonth == 10 && h.hDay == 1) return {"name": "Eid-ul-Fitr", "icon": "🎁"};
-    if (h.hMonth == 12 && h.hDay == 10) return {"name": "Eid-ul-Adha", "icon": "🕋"};
-    if (h.hMonth == 1 && h.hDay == 1) return {"name": "Islamic New Year", "icon": "📅"};
+    if (h.hMonth == 9 && h.hDay == 1)
+      return {"name": "Ramadan Starts", "icon": "🌙"};
+    if (h.hMonth == 10 && h.hDay == 1)
+      return {"name": "Eid-ul-Fitr", "icon": "🎁"};
+    if (h.hMonth == 12 && h.hDay == 10)
+      return {"name": "Eid-ul-Adha", "icon": "🕋"};
+    if (h.hMonth == 1 && h.hDay == 1)
+      return {"name": "Islamic New Year", "icon": "📅"};
     if (h.hMonth == 1 && h.hDay == 10) return {"name": "Ashura", "icon": "🏴"};
-    if (h.hMonth == 3 && h.hDay == 12) return {"name": "Mawlid al-Nabi", "icon": "🕌"};
+    if (h.hMonth == 3 && h.hDay == 12)
+      return {"name": "Mawlid al-Nabi", "icon": "🕌"};
     return null;
   }
 
@@ -630,18 +648,26 @@ class _RoyalIslamicCalendarState extends State<RoyalIslamicCalendar> {
           /// --- Header ---
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.only(top: 60, bottom: 35, left: 20, right: 20),
+            padding:
+                const EdgeInsets.only(top: 60, bottom: 35, left: 20, right: 20),
             decoration: const BoxDecoration(
               color: primaryBrown,
               borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
             ),
             child: Column(
               children: [
-                const Text("ISLAMIC CALENDAR", style: TextStyle(color: backgroundLight, letterSpacing: 2, fontSize: 15)),
+                const Text("ISLAMIC CALENDAR",
+                    style: TextStyle(
+                        color: backgroundLight,
+                        letterSpacing: 2,
+                        fontSize: 15)),
                 const SizedBox(height: 15),
                 Text(
                   "${hijri.hDay} ${hijri.longMonthName} ${hijri.hYear} AH",
-                  style: const TextStyle(color: backgroundLight, fontSize: 24, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      color: backgroundLight,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 5),
                 Text(
@@ -651,9 +677,15 @@ class _RoyalIslamicCalendarState extends State<RoyalIslamicCalendar> {
                 if (fest != null)
                   Container(
                     margin: const EdgeInsets.only(top: 15),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                    child: Text("${fest['icon']} ${fest['name']}", style: const TextStyle(color: Colors.yellowAccent, fontWeight: FontWeight.bold)),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20)),
+                    child: Text("${fest['icon']} ${fest['name']}",
+                        style: const TextStyle(
+                            color: Colors.yellowAccent,
+                            fontWeight: FontWeight.bold)),
                   ),
               ],
             ),
@@ -667,7 +699,10 @@ class _RoyalIslamicCalendarState extends State<RoyalIslamicCalendar> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(25),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20)],
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.05), blurRadius: 20)
+                  ],
                 ),
                 child: TableCalendar(
                   firstDay: DateTime(2000),
@@ -677,7 +712,10 @@ class _RoyalIslamicCalendarState extends State<RoyalIslamicCalendar> {
                   headerStyle: const HeaderStyle(
                     formatButtonVisible: false,
                     titleCentered: true,
-                    titleTextStyle: TextStyle(color: primaryBrown, fontWeight: FontWeight.bold, fontSize: 18),
+                    titleTextStyle: TextStyle(
+                        color: primaryBrown,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18),
                   ),
                   onDaySelected: (selectedDay, focusedDay) {
                     setState(() {
@@ -694,16 +732,22 @@ class _RoyalIslamicCalendarState extends State<RoyalIslamicCalendar> {
                         return Positioned(
                           right: 1,
                           bottom: 1,
-                          child: Text(f['icon'], style: const TextStyle(fontSize: 12)),
+                          child: Text(f['icon'],
+                              style: const TextStyle(fontSize: 12)),
                         );
                       }
                       return null;
                     },
-                    todayBuilder: (context, date, _) => _buildDateCell(date, Colors.grey.shade200, Colors.black),
-                    selectedBuilder: (context, date, _) => _buildDateCell(date, deepGold, Colors.white, isSelected: true),
+                    todayBuilder: (context, date, _) => _buildDateCell(
+                        date, Colors.grey.shade200, Colors.black),
+                    selectedBuilder: (context, date, _) => _buildDateCell(
+                        date, deepGold, Colors.white,
+                        isSelected: true),
                     defaultBuilder: (context, date, _) {
                       bool isFriday = date.weekday == DateTime.friday;
-                      return _buildDateCell(date, Colors.transparent, isFriday ? royalGreen : Colors.black87, isFriday: isFriday);
+                      return _buildDateCell(date, Colors.transparent,
+                          isFriday ? royalGreen : Colors.black87,
+                          isFriday: isFriday);
                     },
                   ),
                 ),
@@ -715,20 +759,29 @@ class _RoyalIslamicCalendarState extends State<RoyalIslamicCalendar> {
     );
   }
 
-  Widget _buildDateCell(DateTime date, Color bgColor, Color textColor, {bool isSelected = false, bool isFriday = false}) {
+  Widget _buildDateCell(DateTime date, Color bgColor, Color textColor,
+      {bool isSelected = false, bool isFriday = false}) {
     final hDate = HijriCalendar.fromDate(date);
     return Container(
       margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(12),
-        border: isFriday && !isSelected ? Border.all(color: royalGreen.withOpacity(0.3)) : null,
+        border: isFriday && !isSelected
+            ? Border.all(color: royalGreen.withOpacity(0.3))
+            : null,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text("${date.day}", style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 15)),
-          Text("${hDate.hDay}", style: TextStyle(color: isSelected ? Colors.white70 : deepGold, fontSize: 10, fontWeight: FontWeight.bold)),
+          Text("${date.day}",
+              style: TextStyle(
+                  color: textColor, fontWeight: FontWeight.bold, fontSize: 15)),
+          Text("${hDate.hDay}",
+              style: TextStyle(
+                  color: isSelected ? Colors.white70 : deepGold,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold)),
         ],
       ),
     );

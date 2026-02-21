@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'prayer_times_data.dart';
 import 'app_colors.dart';
+import 'azan_scheduler.dart';
 
 class SetAzanTimeScreen extends StatefulWidget {
   const SetAzanTimeScreen({super.key});
@@ -12,17 +13,10 @@ class SetAzanTimeScreen extends StatefulWidget {
 
 class _SetAzanTimeScreenState extends State<SetAzanTimeScreen>
     with SingleTickerProviderStateMixin {
-
   late List<TimeOfDay> _times;
   late AnimationController _controller;
 
-  final List<String> _names = [
-    "Fajr",
-    "Dhuhr",
-    "Asr",
-    "Maghrib",
-    "Isha"
-  ];
+  final List<String> _names = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"];
 
   final List<IconData> _icons = [
     Icons.dark_mode,
@@ -60,27 +54,32 @@ class _SetAzanTimeScreenState extends State<SetAzanTimeScreen>
     }
   }
 
-  void _saveTimes() {
-    PrayerTimesData.times = _times;
-    Navigator.pop(context, true);
+  Future<void> _saveTimes() async {
+    await PrayerTimesData.saveUserTimes(_times);
+    await ProAzanEngine.refreshAfterChange();
+
+    if (mounted) {
+      Navigator.pop(context, true);
+    }
   }
 
-  void _resetTimes() {
+  Future<void> _resetTimes() async {
+    await PrayerTimesData.resetToAPI();
+    await ProAzanEngine.refreshAfterChange();
+
     setState(() {
-      _times = List.from(PrayerTimesData.defaultTimes);
+      _times = List.from(PrayerTimesData.times);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-
     final width = MediaQuery.of(context).size.width;
     final height = MediaQuery.of(context).size.height;
 
     return Scaffold(
       body: Stack(
         children: [
-
           /// 🔥 Animated Islamic Gradient Background
           AnimatedBuilder(
             animation: _controller,
@@ -88,10 +87,8 @@ class _SetAzanTimeScreenState extends State<SetAzanTimeScreen>
               return Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment(
-                        -1 + _controller.value * 2, -1),
-                    end: Alignment(
-                        1 - _controller.value * 2, 1),
+                    begin: Alignment(-1 + _controller.value * 2, -1),
+                    end: Alignment(1 - _controller.value * 2, 1),
                     colors: [
                       primaryBrown,
                       primaryBrown.withOpacity(0.8),
@@ -135,7 +132,10 @@ class _SetAzanTimeScreenState extends State<SetAzanTimeScreen>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('Set Azan Time',style: TextStyle(fontSize: 20),),
+                      const Text(
+                        'Set Azan Time',
+                        style: TextStyle(fontSize: 20),
+                      ),
 
                       /// Prayer List
                       ListView.builder(
@@ -154,10 +154,8 @@ class _SetAzanTimeScreenState extends State<SetAzanTimeScreen>
                               borderRadius: BorderRadius.circular(18),
                             ),
                             child: Row(
-                              mainAxisAlignment:
-                              MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-
                                 Row(
                                   children: [
                                     Icon(
@@ -176,7 +174,6 @@ class _SetAzanTimeScreenState extends State<SetAzanTimeScreen>
                                     ),
                                   ],
                                 ),
-
                                 InkWell(
                                   onTap: () => _pickTime(i),
                                   borderRadius: BorderRadius.circular(12),
@@ -187,8 +184,7 @@ class _SetAzanTimeScreenState extends State<SetAzanTimeScreen>
                                     ),
                                     decoration: BoxDecoration(
                                       color: primaryBrown.withOpacity(0.1),
-                                      borderRadius:
-                                      BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
                                       _times[i].format(context),
@@ -211,7 +207,6 @@ class _SetAzanTimeScreenState extends State<SetAzanTimeScreen>
                       /// Buttons
                       Row(
                         children: [
-
                           Expanded(
                             child: OutlinedButton(
                               style: OutlinedButton.styleFrom(
@@ -220,8 +215,7 @@ class _SetAzanTimeScreenState extends State<SetAzanTimeScreen>
                                   vertical: height * 0.02,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                  BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
                               ),
                               onPressed: _resetTimes,
@@ -234,9 +228,7 @@ class _SetAzanTimeScreenState extends State<SetAzanTimeScreen>
                               ),
                             ),
                           ),
-
                           SizedBox(width: width * 0.04),
-
                           Expanded(
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
@@ -245,8 +237,7 @@ class _SetAzanTimeScreenState extends State<SetAzanTimeScreen>
                                   vertical: height * 0.02,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                  BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
                               ),
                               onPressed: _saveTimes,

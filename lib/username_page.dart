@@ -62,14 +62,12 @@ class _UsernamePageState extends State<UsernamePage> {
           child: Center(
             child: SingleChildScrollView(
               child: Padding(
-                padding:
-                EdgeInsets.symmetric(horizontal: horizontalPadding),
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-
                       /// 🌙 APP TITLE
                       Text(
                         "Welcome to Hidayah",
@@ -113,7 +111,7 @@ class _UsernamePageState extends State<UsernamePage> {
                           style: GoogleFonts.poppins(),
                           decoration: InputDecoration(
                             counterText: "",
-                            hintText: "Eg:- Yasheen Khan",
+                            hintText: "Your Name",
                             hintStyle: GoogleFonts.poppins(
                               color: Colors.grey,
                             ),
@@ -146,29 +144,28 @@ class _UsernamePageState extends State<UsernamePage> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryBrown,
                             shape: RoundedRectangleBorder(
-                              borderRadius:
-                              BorderRadius.circular(width * 0.04),
+                              borderRadius: BorderRadius.circular(width * 0.04),
                             ),
                           ),
                           onPressed: isLoading
                               ? null
                               : () {
-                            if (_formKey.currentState!.validate()) {
-                              _saveUsername();
-                            }
-                          },
+                                  if (_formKey.currentState!.validate()) {
+                                    _saveUsername();
+                                  }
+                                },
                           child: isLoading
                               ? const CircularProgressIndicator(
-                            color: Colors.white,
-                          )
+                                  color: Colors.white,
+                                )
                               : Text(
-                            "Continue",
-                            style: GoogleFonts.poppins(
-                              fontSize: width * 0.045,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
+                                  "Continue",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: width * 0.045,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
                         ),
                       ),
                     ],
