@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:geolocator/geolocator.dart';
 import 'prayer_times_data.dart';
 import 'app_colors.dart';
 import 'azan_scheduler.dart';
@@ -13,8 +14,10 @@ class SetAzanTimeScreen extends StatefulWidget {
 
 class _SetAzanTimeScreenState extends State<SetAzanTimeScreen>
     with SingleTickerProviderStateMixin {
-  late List<TimeOfDay> _times;
+
+  List<TimeOfDay> _times = [];
   late AnimationController _controller;
+  bool _locationOff = false;
 
   final List<String> _names = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"];
 
@@ -29,18 +32,49 @@ class _SetAzanTimeScreenState extends State<SetAzanTimeScreen>
   @override
   void initState() {
     super.initState();
-    _times = List.from(PrayerTimesData.times);
 
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 20),
     )..repeat();
+
+    _initializeData();
+    _checkLocation();
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  Future<void> _initializeData() async {
+    await PrayerTimesData.init();
+    if (!mounted) return;
+
+    setState(() {
+      _times = List.from(PrayerTimesData.times);
+    });
+  }
+
+  Future<void> _checkLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+    if (!mounted) return;
+
+    setState(() {
+      _locationOff = !serviceEnabled;
+    });
+  }
+
+  Future<void> _openLocationSettings() async {
+    await Geolocator.openLocationSettings();
+  }
+
+  Future<void> _refreshAfterLocationOn() async {
+    await PrayerTimesData.init(); // fetch again
+    await ProAzanEngine.refreshAfterChange();
+    await _checkLocation();
+
+    if (!mounted) return;
+
+    setState(() {
+      _times = List.from(PrayerTimesData.times);
+    });
   }
 
   Future<void> _pickTime(int index) async {
@@ -55,32 +89,65 @@ class _SetAzanTimeScreenState extends State<SetAzanTimeScreen>
   }
 
   Future<void> _saveTimes() async {
+
+    if (_locationOff) {
+      _showLocationDialog();
+      return;
+    }
+
     await PrayerTimesData.saveUserTimes(_times);
     await ProAzanEngine.refreshAfterChange();
 
-    if (mounted) {
-      Navigator.pop(context, true);
-    }
+    if (mounted) Navigator.pop(context, true);
   }
 
-  Future<void> _resetTimes() async {
-    await PrayerTimesData.resetToAPI();
-    await ProAzanEngine.refreshAfterChange();
+  void _showLocationDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Location Required"),
+        content: const Text(
+            "Please enable Location to calculate accurate prayer times."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _openLocationSettings();
+            },
+            child: const Text("Open Settings"),
+          ),
+        ],
+      ),
+    );
+  }
 
-    setState(() {
-      _times = List.from(PrayerTimesData.times);
-    });
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+
+    if (_times.isEmpty) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final width = MediaQuery.of(context).size.width;
     final height = MediaQuery.of(context).size.height;
 
     return Scaffold(
       body: Stack(
         children: [
-          /// 🔥 Animated Islamic Gradient Background
+
+          /// Animated Background
           AnimatedBuilder(
             animation: _controller,
             builder: (context, child) {
@@ -100,21 +167,6 @@ class _SetAzanTimeScreenState extends State<SetAzanTimeScreen>
             },
           ),
 
-          /// 🌙 Floating Moon Icon Animation
-          Positioned(
-            top: height * 0.15,
-            left: width * 0.1,
-            child: Icon(
-              Icons.nightlight_round,
-              size: 80,
-              color: Colors.white.withOpacity(0.1),
-            )
-                .animate(onPlay: (controller) => controller.repeat())
-                .moveY(begin: -10, end: 10, duration: 4.seconds)
-                .fade(duration: 2.seconds),
-          ),
-
-          /// 🌟 Main Card
           Center(
             child: SingleChildScrollView(
               child: Card(
@@ -132,17 +184,47 @@ class _SetAzanTimeScreenState extends State<SetAzanTimeScreen>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+
                       const Text(
                         'Set Azan Time',
                         style: TextStyle(fontSize: 20),
                       ),
 
-                      /// Prayer List
+                      const SizedBox(height: 20),
+
+                      /// LOCATION WARNING + REFRESH
+                      if (_locationOff) ...[
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            children: [
+                              const Text(
+                                "Location is OFF",
+                                style: TextStyle(color: Colors.red),
+                              ),
+                              const SizedBox(height: 8),
+                              ElevatedButton(
+                                onPressed: _refreshAfterLocationOn,
+                                child: const Text("Refresh After Enabling"),
+                              )
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+
                       ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: _names.length,
                         itemBuilder: (_, i) {
+
+                          final safeTime = _times[i];
+
                           return Container(
                             margin: EdgeInsets.only(bottom: height * 0.02),
                             padding: EdgeInsets.symmetric(
@@ -156,6 +238,7 @@ class _SetAzanTimeScreenState extends State<SetAzanTimeScreen>
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
+
                                 Row(
                                   children: [
                                     Icon(
@@ -174,25 +257,14 @@ class _SetAzanTimeScreenState extends State<SetAzanTimeScreen>
                                     ),
                                   ],
                                 ),
+
                                 InkWell(
                                   onTap: () => _pickTime(i),
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: width * 0.04,
-                                      vertical: height * 0.01,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: primaryBrown.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      _times[i].format(context),
-                                      style: TextStyle(
-                                        fontSize: width * 0.04,
-                                        fontWeight: FontWeight.bold,
-                                        color: primaryBrown,
-                                      ),
+                                  child: Text(
+                                    safeTime.format(context),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: primaryBrown,
                                     ),
                                   ),
                                 ),
@@ -202,53 +274,25 @@ class _SetAzanTimeScreenState extends State<SetAzanTimeScreen>
                         },
                       ),
 
-                      SizedBox(height: height * 0.02),
+                      const SizedBox(height: 20),
 
-                      /// Buttons
                       Row(
                         children: [
                           Expanded(
                             child: OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                side: BorderSide(color: primaryBrown),
-                                padding: EdgeInsets.symmetric(
-                                  vertical: height * 0.02,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                              ),
-                              onPressed: _resetTimes,
-                              child: Text(
-                                "Reset",
-                                style: TextStyle(
-                                  color: primaryBrown,
-                                  fontSize: width * 0.04,
-                                ),
-                              ),
+                              onPressed: () async {
+                                await PrayerTimesData.resetToAPI();
+                                await ProAzanEngine.refreshAfterChange();
+                                _initializeData();
+                              },
+                              child: const Text("Reset"),
                             ),
                           ),
-                          SizedBox(width: width * 0.04),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryBrown,
-                                padding: EdgeInsets.symmetric(
-                                  vertical: height * 0.02,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                              ),
                               onPressed: _saveTimes,
-                              child: Text(
-                                "Save",
-                                style: TextStyle(
-                                  fontSize: width * 0.04,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
+                              child: const Text("Save"),
                             ),
                           ),
                         ],

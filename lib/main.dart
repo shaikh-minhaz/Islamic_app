@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'splash_screen.dart';
-import 'prayer_times_data.dart'; // ⭐ ADD THIS
+import 'prayer_times_data.dart';
 import 'azan_scheduler.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 🔥 VERY IMPORTANT → load prayer times before app start
+  // 🔥 VERY IMPORTANT (Load saved manual times first)
   await PrayerTimesData.init();
-  // 🔥 PRO SYSTEM START
+
+  // Initialize alarm engine
   await ProAzanEngine.init();
+
+  // Schedule alarms after data load
   await ProAzanEngine.scheduleToday();
   await ProAzanEngine.scheduleMidnightRefresh();
 
   // Portrait mode lock
-  SystemChrome.setPreferredOrientations([
+  await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);

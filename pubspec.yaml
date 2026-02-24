@@ -28,6 +28,8 @@ dependencies:
   flutter_background_service_android: ^6.0.1
   android_alarm_manager_plus: ^4.0.3
   flutter_local_notifications: ^17.0.0
+  permission_handler: ^11.3.0
+  flutter_launcher_icons: ^0.13.1
 
 
 
@@ -45,3 +47,10 @@ flutter:
 
   assets:
     - assets/audio/azaan.mp3
+    - assets/image/hidayah.png
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/image/hidayah.png"
+  min_sdk_android: 21
